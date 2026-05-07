@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useState } from 'react'
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,6 +22,8 @@ export default function AddTransactionForm() {
   const [date, setDate] = useState('')
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -63,11 +66,11 @@ export default function AddTransactionForm() {
   }
 
   return (
-    <div className="flex gap-6">
+    <div className="flex gap-6 min-h-screen p-6">
 
       {/* LEFT FORM */}
       <Card className="w-2/3">
-        <CardContent className="p-6 space-y-5">
+        <CardContent className="p-6 space-y-5 h-full flex flex-col">
 
           <h2 className="text-xl font-semibold">Tambah Transaksi</h2>
 
@@ -136,13 +139,12 @@ export default function AddTransactionForm() {
           </div>
 
           {/* BUTTON */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline">Batal</Button>
+          <div className="flex justify-end gap-3 mt-auto">
+            <Button onClick={() => router.push('/')} variant="destructive">Batal</Button>
             <Button onClick={handleSubmit} disabled={loading}>
               {loading ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </div>
-
         </CardContent>
       </Card>
 
