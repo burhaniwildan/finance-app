@@ -15,6 +15,9 @@ export default function Login() {
       password,
     })
 
+    const { data } = await supabase.auth.getUser()
+    console.log(data.user)
+
     if (error) {
       alert(error.message)
     } else {

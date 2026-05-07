@@ -1,14 +1,24 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import Sidebar from "@/components/Sidebar"
 import DashboardCard from "@/components/DashboardCard"
 import TransactionItem from "@/components/TransactionItem"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function Page() {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+    console.log(error)
+    router.push('/login')
+  }
+
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen w-full bg-gray-100">
 
       <Sidebar />
 
@@ -17,7 +27,7 @@ export default function Page() {
         {/* HEADER */}
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold">Halo, Andi 👋</h2>
+            <h2 className="text-2xl font-bold">Halo, Wildan 👋</h2>
             <p className="text-gray-500">Kelola keuanganmu dengan lebih bijak.</p>
           </div>
 
@@ -66,10 +76,11 @@ export default function Page() {
             <TransactionItem name="Makan Siang" type="Pengeluaran" amount="Rp 35.000" color="text-red-600" />
             <TransactionItem name="Transportasi" type="Pengeluaran" amount="Rp 15.000" color="text-red-600" />
 
-            <Button className="w-full">+ Tambah Transaksi</Button>
+            <Button onClick={() => router.push('/add-transaction')} className="w-full">+ Tambah Transaksi</Button>
           </CardContent>
         </Card>
 
+        <Button onClick={handleLogout} variant='destructive'>Log Out</Button>
       </main>
     </div>
   )
