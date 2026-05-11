@@ -80,6 +80,7 @@ export default function AddTransactionForm({
         console.log(error)
         toast.error('Gagal mengupdate data!')
         return
+
       } else {
         toast.success('Berhasil mengupdate data!')
         setAmount('')
@@ -88,6 +89,7 @@ export default function AddTransactionForm({
         setNote('')
         onSuccess?.()
       }
+
     } else {
       const { error } = await supabase
         .from('transaction')
@@ -103,6 +105,7 @@ export default function AddTransactionForm({
         console.log(error)
         toast.error('Gagal menambahkan data!')
         return
+
       } else {
         toast.success('Berhasil menambahkan data!')
         setAmount('')

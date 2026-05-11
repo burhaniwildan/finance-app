@@ -12,9 +12,17 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import Sidebar from '@/components/Sidebar'
 import AddTransactionDialog from '@/components/AddTransactionDialog'
@@ -32,12 +40,58 @@ type Transaction = {
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [dateFilter, setDateFilter] = useState('')
 
   useEffect(() => {
     fetchTransactions()
-  }, [])
+  }, [
+    search,
+    typeFilter,
+    categoryFilter,
+    dateFilter
+  ])
 
   const fetchTransactions = async () => {
+    let query = supabase
+      .from('transaction')
+      .select('*')
+      .order('date', { ascending: false })
+
+    if (search) {
+      query = query.ilike(
+        'description',
+        `%${search}%`
+      )
+    }
+
+    if (typeFilter != 'all') {
+      query = query.eq('type', typeFilter)
+    }
+
+    if (categoryFilter != 'all') {
+      query = query.eq('category', categoryFilter)
+    }
+
+    if (dateFilter) {
+      query = query.eq('date', dateFilter)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.log(error)
+      toast.error('Gagal mengambil data!')
+    } else {
+      setTransactions(data)
+    }
+
+    setLoading(false)
+  }
+
+  /*const fetchTransactions = async () => {
     const { data, error } = await supabase
       .from('transaction')
       .select('*')
@@ -49,7 +103,7 @@ export default function TransactionsPage() {
       setTransactions(data)
     }
     setLoading(false)
-  }
+  }*/
 
   const handleDelete = async (id: string) => {
     const confirmDelete = confirm('Yakin ingin menghapus transaksi ini?')
@@ -87,6 +141,78 @@ export default function TransactionsPage() {
             <h1 className='text-2xl font-bold'>Transaksi</h1>
 
             <AddTransactionDialog onDialogClose={fetchTransactions} />
+          </div>
+
+          <div className="grid grid-cols-4 gap-4 mb-6">
+
+            {/* SEARCH */}
+            <Input
+              placeholder="Cari transaksi..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            {/* FILTER TYPE */}
+            <Select
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Semua Tipe" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="all">
+                  Semua Tipe
+                </SelectItem>
+
+                <SelectItem value="income">
+                  Pemasukan
+                </SelectItem>
+
+                <SelectItem value="expense">
+                  Pengeluaran
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* FILTER CATEGORY */}
+            <Select
+              value={categoryFilter}
+              onValueChange={setCategoryFilter}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Semua Kategori" />
+              </SelectTrigger>
+
+              <SelectContent>
+
+                <SelectItem value="all">
+                  Semua Kategori
+                </SelectItem>
+
+                <SelectItem value="makanan">
+                  Makanan
+                </SelectItem>
+
+                <SelectItem value="transport">
+                  Transportasi
+                </SelectItem>
+
+                <SelectItem value="belanja">
+                  Belanja
+                </SelectItem>
+
+              </SelectContent>
+            </Select>
+
+            {/* FILTER DATE */}
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+
           </div>
 
           <Table>
