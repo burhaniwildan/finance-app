@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import Sidebar from '@/components/Sidebar'
 import AddTransactionDialog from '@/components/AddTransactionDialog'
+import EditTransactionDialog from '@/components/EditTransactionDialog'
 
 type Transaction = {
   id: string
@@ -160,12 +161,10 @@ export default function TransactionsPage() {
 
                     <TableCell>
                       <div className='flex items-center justify-center gap-2'>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <Pencil className='w-4 h-4' />
-                        </Button>
+                        <EditTransactionDialog
+                          transaction={transaction}
+                          onSuccess={fetchTransactions}
+                        />
 
                         <Button
                           size="icon"

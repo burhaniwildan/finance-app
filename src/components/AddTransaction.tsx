@@ -16,18 +16,37 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+type Transaction = {
+  id: string
+  amount: number
+  type: string
+  category: string
+  description: string
+  date: string
+}
+
 type Props = {
   onClose: () => void
+  onSuccess?: () => void
+  transaction?: Transaction
+  isEdit?: boolean
 }
 
 export default function AddTransactionForm({
   onClose,
+  onSuccess,
+  transaction,
+  isEdit = false
 }: Props) {
   const [type, setType] = useState<'income' | 'expense'>('expense')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState('')
-  const [date, setDate] = useState('')
-  const [note, setNote] = useState('')
+  const [amount, setAmount] = useState(
+    transaction?.amount?.toString() || '')
+  const [category, setCategory] = useState(
+    transaction?.category?.toString() || '')
+  const [date, setDate] = useState(
+    transaction?.date?.toString() || '')
+  const [note, setNote] = useState(
+    transaction?.description?.toString() || '')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -45,28 +64,52 @@ export default function AddTransactionForm({
     }
 
     // insert ke database
-    const { error } = await supabase.from('transaction').insert([
-      {
-        user_id: userData.user.id,
-        amount: Number(amount),
-        type,
-        category,
-        description: note,
-        date,
+    if (isEdit) {
+      const { error } = await supabase
+        .from('transaction')
+        .update({
+          amount: Number(amount),
+          type,
+          category,
+          description: note,
+          date
+        })
+        .eq('id', transaction?.id)
+
+      if (error) {
+        console.log(error)
+        toast.error('Gagal mengupdate data!')
+        return
+      } else {
+        toast.success('Berhasil mengupdate data!')
+        setAmount('')
+        setCategory('')
+        setDate('')
+        setNote('')
+        onSuccess?.()
       }
-    ])
-
-    if (error) {
-      console.log(error)
-      toast.error('Transaksi gagal disimpan.')
     } else {
-      toast.success('Transaksi berhasil disimpan.')
+      const { error } = await supabase
+        .from('transaction')
+        .insert({
+          amount: Number(amount),
+          type,
+          category,
+          description: note,
+          date,
+        })
 
-      // reset form
-      setAmount('')
-      setCategory('')
-      setDate('')
-      setNote('')
+      if (error) {
+        console.log(error)
+        toast.error('Gagal menambahkan data!')
+        return
+      } else {
+        toast.success('Berhasil menambahkan data!')
+        setAmount('')
+        setCategory('')
+        setDate('')
+        setNote('')
+      }
     }
 
     setLoading(false)
