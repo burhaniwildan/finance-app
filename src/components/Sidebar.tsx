@@ -9,7 +9,7 @@ export default function Sidebar() {
       <h1 className="text-xl font-bold mb-8">finance-app</h1>
 
       <nav className="space-y-3">
-        <p className="font-semibold text-blue-600">Dashboard</p>
+        <p onClick={() => router.push('/')} className="font-semibold text-blue-600 cursor-pointer">Dashboard</p>
         <p onClick={() => router.push('/transaction')} className="text-gray-600 cursor-pointer">Transaksi</p>
         <p className="text-gray-600">Kategori</p>
         <p className="text-gray-600">Budget</p>

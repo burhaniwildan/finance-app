@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import { toast } from "sonner"
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -19,9 +20,9 @@ export default function Login() {
     console.log(data.user)
 
     if (error) {
-      alert(error.message)
+      toast.error(error.message)
     } else {
-      alert('Login berhasil')
+      toast.success('Login berhasil!')
       router.push('/')
     }
   }

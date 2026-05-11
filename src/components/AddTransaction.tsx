@@ -84,7 +84,7 @@ export default function AddTransactionForm({
           {/* TYPE */}
           <div className="flex gap-4">
             <Button
-              variant={type === 'income' ? 'default' : 'outline'}
+              variant={type === 'income' ? 'green' : 'outline'}
               className="w-1/2"
               onClick={() => setType('income')}
             >

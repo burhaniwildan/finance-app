@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
+import { Pencil, Trash2 } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -14,7 +15,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-
+import { toast } from "sonner"
 import Sidebar from '@/components/Sidebar'
 import AddTransactionDialog from '@/components/AddTransactionDialog'
 
@@ -49,6 +50,26 @@ export default function TransactionsPage() {
     setLoading(false)
   }
 
+  const handleDelete = async (id: string) => {
+    const confirmDelete = confirm('Yakin ingin menghapus transaksi ini?')
+
+    if (!confirmDelete) return
+
+    const { error } = await supabase
+      .from('transaction')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.log(error)
+      toast.error('Gagal menghapus data!')
+      return
+    } else {
+      fetchTransactions()
+      toast.success('Berhasil menghapus data!')
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -75,6 +96,7 @@ export default function TransactionsPage() {
                 <TableHead>Kategori</TableHead>
                 <TableHead>Tipe</TableHead>
                 <TableHead className='text-right'>Jumlah</TableHead>
+                <TableHead className='text-center'>Aksi</TableHead>
               </TableRow>
             </TableHeader>
 
@@ -83,7 +105,7 @@ export default function TransactionsPage() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={5}>
-                    Loading
+                    Loading...
                   </TableCell>
                 </TableRow>
               ) : transactions.length === 0 ? (
@@ -135,13 +157,32 @@ export default function TransactionsPage() {
                       }>
                       {formatCurrency(transaction.amount)}
                     </TableCell>
+
+                    <TableCell>
+                      <div className='flex items-center justify-center gap-2'>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <Pencil className='w-4 h-4' />
+                        </Button>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(transaction.id)}
+                        >
+                          <Trash2 className='w-4 h-4 text-red-500' />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
-    </div>
+      </Card >
+    </div >
   )
 }
