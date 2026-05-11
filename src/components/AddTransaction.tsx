@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 import {
   Select,
   SelectContent,
@@ -15,7 +16,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export default function AddTransactionForm() {
+type Props = {
+  onClose: () => void
+}
+
+export default function AddTransactionForm({
+  onClose,
+}: Props) {
   const [type, setType] = useState<'income' | 'expense'>('expense')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
@@ -51,9 +58,9 @@ export default function AddTransactionForm() {
 
     if (error) {
       console.log(error)
-      alert('Gagal menyimpan data')
+      toast.error('Transaksi gagal disimpan.')
     } else {
-      alert('Transaksi berhasil disimpan')
+      toast.success('Transaksi berhasil disimpan.')
 
       // reset form
       setAmount('')
@@ -66,7 +73,7 @@ export default function AddTransactionForm() {
   }
 
   return (
-    <div className="flex gap-6 min-h-screen p-6">
+    <div className="flex gap-6">
 
       {/* LEFT FORM */}
       <Card className="w-2/3">
@@ -140,7 +147,7 @@ export default function AddTransactionForm() {
 
           {/* BUTTON */}
           <div className="flex justify-end gap-3 mt-auto">
-            <Button onClick={() => router.push('/')} variant="destructive">Batal</Button>
+            <Button onClick={onClose} variant="destructive">Batal</Button>
             <Button onClick={handleSubmit} disabled={loading}>
               {loading ? 'Menyimpan...' : 'Simpan'}
             </Button>

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 import Sidebar from '@/components/Sidebar'
+import AddTransactionDialog from '@/components/AddTransactionDialog'
 
 type Transaction = {
   id: string
@@ -58,14 +59,12 @@ export default function TransactionsPage() {
   return (
     <div className='flex gap-2 min-h-screen min-w-screen'>
       <Sidebar></Sidebar>
-      <Card className='m-6'>
-        <CardContent className='min-w-screen p-6'>
+      <Card className='m-6 w-full'>
+        <CardContent className='p-6'>
           <div className='flex justify-between items-center mb-6'>
             <h1 className='text-2xl font-bold'>Transaksi</h1>
 
-            <Button>
-              + Tambah Transaksi
-            </Button>
+            <AddTransactionDialog onDialogClose={fetchTransactions} />
           </div>
 
           <Table>

@@ -13,7 +13,6 @@ export default function Page() {
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
-    console.log(error)
     router.push('/login')
   }
 

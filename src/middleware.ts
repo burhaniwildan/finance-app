@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  console.log(user)
+  //console.log(user)
 
   // route yang diproteksi
   const protectedRoutes = ['/', '/transaction']

@@ -10,7 +10,7 @@ export default function Sidebar() {
 
       <nav className="space-y-3">
         <p className="font-semibold text-blue-600">Dashboard</p>
-        <p onClick={() => router.push('/add-transaction')} className="text-gray-600 cursor-pointer">Transaksi</p>
+        <p onClick={() => router.push('/transaction')} className="text-gray-600 cursor-pointer">Transaksi</p>
         <p className="text-gray-600">Kategori</p>
         <p className="text-gray-600">Budget</p>
         <p className="text-gray-600">Laporan</p>
