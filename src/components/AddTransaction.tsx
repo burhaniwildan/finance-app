@@ -99,11 +99,13 @@ export default function AddTransactionForm({
           category,
           description: note,
           date,
+          user_id: userData?.user.id
         })
 
       if (error) {
         console.log(error)
         toast.error('Gagal menambahkan data!')
+        setLoading(false)
         return
 
       } else {
@@ -160,7 +162,7 @@ export default function AddTransactionForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm">Kategori</label>
-              <Select onValueChange={setCategory}>
+              <Select onValueChange={setCategory} value={category}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>

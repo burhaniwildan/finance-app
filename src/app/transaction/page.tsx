@@ -1,6 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import {
+  useRouter,
+  useSearchParams,
+  usePathname
+} from "next/navigation"
 import { supabase } from '@/lib/supabaseClient'
 
 import { format } from "date-fns"
@@ -49,6 +54,7 @@ import { motion } from "framer-motion"
 import Sidebar from '@/components/Sidebar'
 import AddTransactionDialog from '@/components/AddTransactionDialog'
 import EditTransactionDialog from '@/components/EditTransactionDialog'
+import DeleteTransactionDialog from '@/components/DeleteTransactionDialog'
 
 type Transaction = {
   id: string
@@ -66,15 +72,27 @@ const categories = [
 ]
 
 export default function TransactionsPage() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState('newest')
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    searchParams.get('debouncedSearch') || ''
+  )
+  const [typeFilter, setTypeFilter] = useState(
+    searchParams.get('type') || 'all'
+  )
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    searchParams.get('categories')
+      ?.split(',')
+      .filter(Boolean) || []
+  )
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest')
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
+  //Timeout Debounced Search
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedSearch(search)
@@ -82,6 +100,7 @@ export default function TransactionsPage() {
     return () => clearTimeout(timeout)
   }, [search])
 
+  //Fetch Transactions
   useEffect(() => {
     fetchTransactions()
   }, [
@@ -92,6 +111,57 @@ export default function TransactionsPage() {
     dateRange
   ])
 
+  //Query Params
+  useEffect(() => {
+    const params = new URLSearchParams()
+
+    if (debouncedSearch) {
+      params.set('debouncedSearch', debouncedSearch)
+    }
+
+    if (typeFilter !== 'all') {
+      params.set('type', typeFilter)
+    }
+
+    if (sortBy !== 'newest') {
+      params.set('sort', sortBy)
+    }
+
+    if (selectedCategories.length > 0) {
+      params.set(
+        'categories',
+        selectedCategories.join(',')
+      )
+    }
+
+    if (dateRange?.from) {
+      params.set(
+        'from',
+        format(dateRange.from, 'yyyy-MM-dd')
+      )
+    }
+
+    if (dateRange?.to) {
+      params.set(
+        'to',
+        format(dateRange.to, 'yyyy-MM-dd')
+      )
+    }
+
+    router.replace(
+      `${pathname}?${params.toString()}`
+    )
+  }, [
+    debouncedSearch,
+    typeFilter,
+    sortBy,
+    selectedCategories,
+    dateRange,
+    router,
+    pathname
+  ])
+
+  //Function Fetch Transactions
   const fetchTransactions = async () => {
     let query = supabase
       .from('transaction')
@@ -169,40 +239,7 @@ export default function TransactionsPage() {
     setLoading(false)
   }
 
-  /*const fetchTransactions = async () => {
-    const { data, error } = await supabase
-      .from('transaction')
-      .select('*')
-      .order('date', { ascending: false })
-
-    if (error) {
-      console.log(error)
-    } else {
-      setTransactions(data)
-    }
-    setLoading(false)
-  }*/
-
-  const handleDelete = async (id: string) => {
-    const confirmDelete = confirm('Yakin ingin menghapus transaksi ini?')
-
-    if (!confirmDelete) return
-
-    const { error } = await supabase
-      .from('transaction')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      console.log(error)
-      toast.error('Gagal menghapus data!')
-      return
-    } else {
-      fetchTransactions()
-      toast.success('Berhasil menghapus data!')
-    }
-  }
-
+  //Toggle Category
   const toggleCategory = (
     category: string
   ) => {
@@ -216,6 +253,7 @@ export default function TransactionsPage() {
     })
   }
 
+  //Format Currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -231,7 +269,22 @@ export default function TransactionsPage() {
           <div className='flex justify-between items-center mb-6'>
             <h1 className='text-2xl font-bold'>Transaksi</h1>
 
-            <AddTransactionDialog onDialogClose={fetchTransactions} />
+            <div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDebouncedSearch('')
+                  setTypeFilter('all')
+                  setSortBy('newest')
+                  setSelectedCategories([])
+                  setDateRange(undefined)
+                }}
+                className='mr-2'
+              >
+                Reset Filter
+              </Button>
+              <AddTransactionDialog onDialogClose={fetchTransactions} />
+            </div>
           </div>
 
           <div className="grid grid-cols-5 gap-4 mb-6">
@@ -520,13 +573,10 @@ export default function TransactionsPage() {
                           onSuccess={fetchTransactions}
                         />
 
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDelete(transaction.id)}
-                        >
-                          <Trash2 className='w-4 h-4 text-red-500' />
-                        </Button>
+                        <DeleteTransactionDialog
+                          transactionId={transaction.id}
+                          onSuccess={fetchTransactions}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>
