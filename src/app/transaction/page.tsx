@@ -55,6 +55,7 @@ import Sidebar from '@/components/Sidebar'
 import AddTransactionDialog from '@/components/AddTransactionDialog'
 import EditTransactionDialog from '@/components/EditTransactionDialog'
 import DeleteTransactionDialog from '@/components/DeleteTransactionDialog'
+import { span } from 'framer-motion/client'
 
 type Transaction = {
   id: string
@@ -75,22 +76,35 @@ export default function TransactionsPage() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [itemsPerPage, setItemsPerPage] =
+    useState(
+      Number(searchParams.get('limit')) || 10
+    )
+  const [currentPage, setCurrentPage] =
+    useState(
+      Number(searchParams.get('page')) || 1
+    )
+  const [totalCount, setTotalCount] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState(
-    searchParams.get('debouncedSearch') || ''
-  )
-  const [typeFilter, setTypeFilter] = useState(
-    searchParams.get('type') || 'all'
-  )
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    searchParams.get('categories')
-      ?.split(',')
-      .filter(Boolean) || []
-  )
+  const [debouncedSearch, setDebouncedSearch] =
+    useState(
+      searchParams.get('debouncedSearch') || ''
+    )
+  const [typeFilter, setTypeFilter] =
+    useState(
+      searchParams.get('type') || 'all'
+    )
+  const [selectedCategories, setSelectedCategories] =
+    useState<string[]>(
+      searchParams.get('categories')
+        ?.split(',')
+        .filter(Boolean) || []
+    )
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest')
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const totalPages = Math.ceil(totalCount / itemsPerPage)
 
   //Timeout Debounced Search
   useEffect(() => {
@@ -108,12 +122,23 @@ export default function TransactionsPage() {
     typeFilter,
     selectedCategories,
     sortBy,
-    dateRange
+    dateRange,
+    currentPage
   ])
 
   //Query Params
   useEffect(() => {
     const params = new URLSearchParams()
+
+    params.set(
+      'page',
+      currentPage.toString()
+    )
+
+    params.set(
+      'limit',
+      currentPage.toString()
+    )
 
     if (debouncedSearch) {
       params.set('debouncedSearch', debouncedSearch)
@@ -165,7 +190,12 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     let query = supabase
       .from('transaction')
-      .select('*')
+      .select('*', { count: 'exact' })
+
+    const from = (currentPage - 1) * itemsPerPage
+    const to = from + itemsPerPage
+
+    query = query.range(from, to)
 
     if (debouncedSearch) {
       query = query.ilike(
@@ -227,7 +257,8 @@ export default function TransactionsPage() {
         )
     }
 
-    const { data, error } = await query
+    const { data, error, count } = await query
+    setTotalCount(count || 0)
 
     if (error) {
       console.log(error)
@@ -243,6 +274,7 @@ export default function TransactionsPage() {
   const toggleCategory = (
     category: string
   ) => {
+    setCurrentPage(1)
     setSelectedCategories((prev) => {
       if (prev.includes(category)) {
         return prev.filter(
@@ -259,6 +291,43 @@ export default function TransactionsPage() {
       style: 'currency',
       currency: 'IDR',
     }).format(amount)
+  }
+
+  const handlePageChange = (
+    page: number
+  ) => {
+    setCurrentPage(page)
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
+
+  const generatePagination = () => {
+    const pages = []
+
+    pages.push(1)
+
+    if (currentPage > 3) {
+      pages.push('...')
+    }
+
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    ) {
+      pages.push(i)
+    }
+
+    if (currentPage < totalPages - 2) {
+      pages.push('...')
+    }
+
+    if (totalPages > 1) {
+      pages.push(totalPages)
+    }
+    return [...new Set(pages)]
   }
 
   return (
@@ -293,13 +362,19 @@ export default function TransactionsPage() {
             <Input
               placeholder="Cari transaksi..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setCurrentPage(1)
+              }}
             />
 
             {/* FILTER TYPE */}
             <Select
               value={typeFilter}
-              onValueChange={setTypeFilter}
+              onValueChange={(value) => {
+                setTypeFilter(value)
+                setCurrentPage(1)
+              }}
             >
               <SelectTrigger className='w-full'>
                 <SelectValue placeholder="Semua Tipe" />
@@ -339,54 +414,37 @@ export default function TransactionsPage() {
                 </Button>
 
               </PopoverTrigger>
-
               <PopoverContent className="w-64 p-0">
-
                 <Command>
-
                   <CommandInput placeholder="Cari kategori..." />
-
                   <CommandEmpty>
                     Kategori tidak ditemukan
                   </CommandEmpty>
 
                   <CommandGroup>
-
                     {categories.map((category) => (
-
                       <CommandItem
                         key={category}
                         onSelect={() =>
                           toggleCategory(category)
                         }
                       >
-
                         <div className="flex items-center gap-2">
-
                           <Checkbox
                             checked={selectedCategories.includes(category)}
                           />
-
                           <span className="capitalize">
                             {category}
                           </span>
-
                         </div>
-
                         {selectedCategories.includes(category) && (
                           <Check className="ml-auto h-4 w-4" />
                         )}
-
                       </CommandItem>
-
                     ))}
-
                   </CommandGroup>
-
                 </Command>
-
               </PopoverContent>
-
             </Popover>
             {/*<Select
               value={categoryFilter}
@@ -422,13 +480,10 @@ export default function TransactionsPage() {
               value={sortBy}
               onValueChange={setSortBy}
             >
-
               <SelectTrigger className='w-full'>
                 <SelectValue />
               </SelectTrigger>
-
               <SelectContent>
-
                 <SelectItem value="newest">
                   Terbaru
                 </SelectItem>
@@ -444,17 +499,13 @@ export default function TransactionsPage() {
                 <SelectItem value="lowest">
                   Nominal Terendah
                 </SelectItem>
-
               </SelectContent>
-
             </Select>
 
             {/* FILTER DATE */}
 
             <Popover>
-
               <PopoverTrigger asChild>
-
                 <Button
                   variant="outline"
                   className="justify-start text-left font-normal "
@@ -473,27 +524,25 @@ export default function TransactionsPage() {
                     <span>Pilih rentang tanggal</span>
                   )}
                 </Button>
-
               </PopoverTrigger>
 
               <PopoverContent
                 className="w-auto p-0"
                 align="end"
               >
-
                 <Calendar
                   //initialFocus
                   mode="range"
                   defaultMonth={dateRange?.from}
                   selected={dateRange}
-                  onSelect={setDateRange}
+                  onSelect={(value) => {
+                    setDateRange(value)
+                    setCurrentPage(1)
+                  }}
                   numberOfMonths={2}
                 />
-
               </PopoverContent>
-
             </Popover>
-
           </div>
 
           <Table>
@@ -584,6 +633,84 @@ export default function TransactionsPage() {
               )}
             </TableBody>
           </Table>
+
+          <Select
+            value={itemsPerPage.toString()}
+            onValueChange={(value) => {
+
+              setItemsPerPage(Number(value))
+
+              setCurrentPage(1)
+            }}
+          >
+            <SelectTrigger >
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="10">
+                10 rows
+              </SelectItem>
+
+              <SelectItem value="25">
+                25 rows
+              </SelectItem>
+
+              <SelectItem value="50">
+                50 rows
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className='flex items-center justify-center gap-2'>
+            {/* PREV */}
+            <Button
+              variant="outline"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => prev - 1)}
+            >
+              {'<'}
+            </Button>
+
+            {/* PAGE NUMBERS */}
+            {generatePagination().map(
+              (page, index) => {
+                if (page === '...') {
+                  return (
+                    <span
+                      key={index}
+                      className='px-2'
+                    >
+                      ...
+                    </span>
+                  )
+                }
+
+                return (
+                  <Button
+                    key={index}
+                    variant={
+                      currentPage === page
+                        ? 'default'
+                        : 'outline'
+                    }
+                    onClick={() => handlePageChange(Number(page))}
+                  >
+                    {page}
+                  </Button>
+                )
+              }
+            )}
+
+            {/* NEXT */}
+            <Button
+              variant="outline"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+            >
+              {'>'}
+            </Button>
+          </div>
         </CardContent>
       </Card >
     </div >
