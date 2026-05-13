@@ -1,15 +1,94 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from "react"
 import Sidebar from "@/components/Sidebar"
 import DashboardCard from "@/components/DashboardCard"
 import TransactionItem from "@/components/TransactionItem"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
+import { div } from 'framer-motion/client'
+
+type Transaction = {
+  id: string
+  amount: number
+  type: string
+  category: string
+  date: string
+}
 
 export default function Page() {
   const router = useRouter()
+  const [transactions, setTransactions] =
+    useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [balance, setBalance] = useState(0)
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      await fetchBalance(user.id)
+      await fetchTransactions()
+    }
+    fetchDashboard()
+  }, [])
+
+  const fetchBalance = async (userId: string) => {
+    setLoading(true)
+
+    const { data, error } = await supabase
+      .from('user_balance')
+      .select('current_balance')
+      .eq('user_id', userId)
+      .single()
+
+    if (error) {
+      console.log(error)
+      toast.error('Gagal mengambil balance')
+    } else {
+      setBalance(Number(data.current_balance))
+    }
+
+  }
+
+  const fetchTransactions = async () => {
+    setLoading(true)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('transaction')
+      .select('id, amount, type, category, date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+
+    if (error) {
+      console.log(error)
+    } else {
+      setTransactions(data || [])
+    }
+    setLoading(false)
+  }
+
+  const recentTransactions = transactions.slice(0, 5)
+
+  const totalIncome = transactions
+    .filter((item) => item.type === 'income')
+    .reduce((acc, item) => acc + item.amount, 0)
+
+  const totalExpense = transactions
+    .filter((item) => item.type === 'expense')
+    .reduce((acc, item) => acc + item.amount, 0)
+
+  //const balance = totalIncome - totalExpense
+
+  const formatCurrency = (amount: number) => {
+    return `Rp ${amount.toLocaleString('id-ID')}`
+  }
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
@@ -35,9 +114,23 @@ export default function Page() {
 
         {/* CARDS */}
         <div className="grid grid-cols-3 gap-4">
-          <DashboardCard title="Saldo Saat Ini" amount="Rp 5.450.000" color="text-green-600" />
-          <DashboardCard title="Total Pemasukan" amount="Rp 8.750.000" color="text-blue-600" />
-          <DashboardCard title="Total Pengeluaran" amount="Rp 3.300.000" color="text-red-600" />
+          <DashboardCard
+            title='Saldo Saat Ini'
+            amount={loading ? "Memuat..." : formatCurrency(balance)}
+            color={loading ? 'text-gray-500' : 'text-green-600'}
+          />
+
+          <DashboardCard
+            title='Total Pemasukan'
+            amount={loading ? "Memuat..." : formatCurrency(totalIncome)}
+            color={loading ? 'text-gray-500' : 'text-blue-600'}
+          />
+
+          <DashboardCard
+            title='Total Pengeluaran'
+            amount={loading ? "Memuat..." : formatCurrency(totalExpense)}
+            color={loading ? 'text-gray-500' : 'text-red-600'}
+          />
         </div>
 
         {/* CHART SECTION */}
@@ -68,14 +161,40 @@ export default function Page() {
           <CardContent className="p-4 space-y-4">
             <div className="flex justify-between">
               <h3 className="font-semibold">Transaksi Terbaru</h3>
-              <Button variant="link">Lihat Semua</Button>
+              <Button
+                variant="link"
+                onClick={() => router.push('/transaction')}
+              >
+                Lihat Semua
+              </Button>
             </div>
 
-            <TransactionItem name="Gaji Bulanan" type="Pemasukan" amount="Rp 8.000.000" color="text-green-600" />
-            <TransactionItem name="Makan Siang" type="Pengeluaran" amount="Rp 35.000" color="text-red-600" />
-            <TransactionItem name="Transportasi" type="Pengeluaran" amount="Rp 15.000" color="text-red-600" />
+            {loading ?
+              (
+                <p className='text-gray-500'>Memuat...</p>
+              ) :
+              recentTransactions.length === 0 ? (
+                <div className='text-center py-10 text-gray-400'>
+                  Belum ada transaksi
+                </div>
+              ) : (
+                recentTransactions.map((transaction) => (
+                  <TransactionItem
+                    key={transaction.id}
+                    name={transaction.category}
+                    type={transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                    amount={formatCurrency(transaction.amount)}
+                    color={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}
+                  />
+                ))
+              )}
 
-            <Button onClick={() => router.push('/add-transaction')} className="w-full">+ Tambah Transaksi</Button>
+            <Button
+              onClick={() => router.push('/transaction')}
+              className="w-full"
+            >
+              + Tambah Transaksi
+            </Button>
           </CardContent>
         </Card>
 

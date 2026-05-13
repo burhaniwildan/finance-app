@@ -10,7 +10,7 @@ export default function Register() {
   const router = useRouter()
 
   const handleRegister = async () => {
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
     })
@@ -18,6 +18,22 @@ export default function Register() {
     if (error) {
       alert(error.message)
     } else {
+      const user = data.user
+
+      if (user) {
+        const { error: balanceError } = await supabase
+          .from('user_balance')
+          .insert({
+            user_id: user.id,
+            current_balance: 0
+          })
+
+        if (balanceError) {
+          console.log(balanceError)
+          alert('Gagal membuat balance user')
+          return
+        }
+      }
       alert('Register berhasil, silakan login')
       router.push('/login')
     }

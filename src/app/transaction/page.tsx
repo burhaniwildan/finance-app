@@ -266,7 +266,6 @@ export default function TransactionsPage() {
     } else {
       setTransactions(data)
     }
-
     setLoading(false)
   }
 
@@ -305,13 +304,11 @@ export default function TransactionsPage() {
 
   const generatePagination = () => {
     const pages = []
-
     pages.push(1)
 
     if (currentPage > 3) {
       pages.push('...')
     }
-
     for (
       let i = Math.max(2, currentPage - 1);
       i <= Math.min(totalPages - 1, currentPage + 1);
@@ -319,11 +316,9 @@ export default function TransactionsPage() {
     ) {
       pages.push(i)
     }
-
     if (currentPage < totalPages - 2) {
       pages.push('...')
     }
-
     if (totalPages > 1) {
       pages.push(totalPages)
     }
@@ -446,34 +441,6 @@ export default function TransactionsPage() {
                 </Command>
               </PopoverContent>
             </Popover>
-            {/*<Select
-              value={categoryFilter}
-              onValueChange={setCategoryFilter}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Semua Kategori" />
-              </SelectTrigger>
-
-              <SelectContent>
-
-                <SelectItem value="all">
-                  Semua Kategori
-                </SelectItem>
-
-                <SelectItem value="makanan">
-                  Makanan
-                </SelectItem>
-
-                <SelectItem value="transport">
-                  Transportasi
-                </SelectItem>
-
-                <SelectItem value="belanja">
-                  Belanja
-                </SelectItem>
-
-              </SelectContent>
-            </Select>*/}
 
             {/* SORT */}
             <Select
@@ -623,7 +590,7 @@ export default function TransactionsPage() {
                         />
 
                         <DeleteTransactionDialog
-                          transactionId={transaction.id}
+                          transaction={transaction}
                           onSuccess={fetchTransactions}
                         />
                       </div>

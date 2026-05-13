@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 export default function Sidebar() {
   const router = useRouter();
   return (
-    <aside className="w-64 bg-white border-r p-5">
+    <aside className="w-[15%] bg-white border-r p-5">
       <h1 className="text-xl font-bold mb-8">finance-app</h1>
 
       <nav className="space-y-3">
