@@ -31,7 +31,7 @@ export default function Page() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       await fetchBalance(user.id)
-      await fetchTransactions()
+      await fetchTransactions(user)
     }
     fetchDashboard()
   }, [])
@@ -54,11 +54,11 @@ export default function Page() {
 
   }
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (user: any) => {
     setLoading(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    //const { data: { user } } = await supabase.auth.getUser()
+    //if (!user) return
 
     const { data, error } = await supabase
       .from('transaction')

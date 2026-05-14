@@ -40,41 +40,6 @@ export default function DeleteTransactionDialog({
       return
     }
 
-    const {
-      data: balanceData,
-      error: balanceFetchError
-    } =
-      await supabase
-        .from('user_balance')
-        .select('current_balance')
-        .eq('user_id', userData.user.id)
-        .single()
-
-    if (balanceFetchError || !balanceData) {
-      toast.error('Balance user tidak ditemukan')
-      return
-    }
-
-    const balanceChange =
-      transaction.type === 'income'
-        ? -transaction.amount
-        : transaction.amount
-
-    const { error: balanceError } = await supabase
-      .from('user_balance')
-      .update({
-        current_balance:
-          Number(balanceData.current_balance)
-          + balanceChange
-      })
-      .eq('user_id', userData.user.id)
-
-    if (balanceError) {
-      console.log(balanceError)
-      toast.error('Gagal update balance')
-      return
-    }
-
     const { error } = await supabase
       .from('transaction')
       .delete()

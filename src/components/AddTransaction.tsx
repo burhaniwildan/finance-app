@@ -65,40 +65,6 @@ export default function AddTransactionForm({
 
     // update transaction
     if (isEdit && transaction) {
-      // ambil data balance
-      const {
-        data: balanceData,
-        error: balanceFetchError
-      } = await supabase
-        .from('user_balance')
-        .select('current_balance')
-        .eq('user_id', userData.user.id)
-        .single()
-
-      if (balanceFetchError || !balanceData) {
-        toast.error('Balance user tidak ditemukan')
-        setLoading(false)
-        return
-      }
-
-      // ambil nominal transaksi lama
-      const oldEffect =
-        transaction.type === 'income'
-          ? -Number(transaction.amount)
-          : Number(transaction.amount)
-
-      // ambil nominal transaksi baru
-      const newEffect =
-        type === 'income'
-          ? Number(amount)
-          : -Number(amount)
-
-      // update saldo
-      const updatedBalance =
-        Number(balanceData.current_balance)
-        + oldEffect
-        + newEffect
-
       // update transaksi
       const { error } = await supabase
         .from('transaction')
@@ -118,23 +84,6 @@ export default function AddTransactionForm({
         return
 
       } else {
-        // update balance
-        const {
-          error: balanceError
-        } = await supabase
-          .from('user_balance')
-          .update({
-            current_balance: updatedBalance
-          })
-          .eq('user_id', userData.user.id)
-
-        if (balanceError) {
-          console.log(error)
-          toast.error('Gagal udpate balance')
-          setLoading(false)
-          return
-        }
-
         toast.success('Berhasil mengupdate data!')
         setAmount('')
         setCategory('')
@@ -163,40 +112,6 @@ export default function AddTransactionForm({
         return
 
       } else {
-        // update balance
-        const balanceChange =
-          type === 'income' ?
-            Number(amount) :
-            -Number(amount)
-
-        const { data: balanceData } =
-          await supabase
-            .from('user_balance')
-            .select('current_balance')
-            .eq('user_id', userData.user.id)
-            .single()
-
-        if (!balanceData) {
-          toast.error('Balance user tidak ditemukan')
-          setLoading(false)
-          return
-        }
-
-        const { error: balanceError } =
-          await supabase
-            .from('user_balance')
-            .update({
-              current_balance:
-                Number(balanceData.current_balance) + balanceChange
-            })
-            .eq('user_id', userData.user.id)
-
-        if (balanceError) {
-          console.log(balanceError)
-          toast.error('Gagal update balance')
-          return
-        }
-
         toast.success('Berhasil menambahkan data!')
         setAmount('')
         setCategory('')
