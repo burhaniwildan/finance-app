@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabaseClient"
+
 import Sidebar from "@/components/Sidebar"
 import DashboardCard from "@/components/DashboardCard"
 import TransactionItem from "@/components/TransactionItem"
@@ -12,9 +14,19 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover"
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts'
 import { toast } from "sonner"
-import { supabase } from "@/lib/supabaseClient"
-import { div } from 'framer-motion/client'
 
 type Transaction = {
   id: string
@@ -46,6 +58,7 @@ export default function Page() {
     fetchDashboard()
   }, [])
 
+  // ambil data balance
   const fetchBalance = async (userId: string) => {
     setLoading(true)
 
@@ -64,6 +77,7 @@ export default function Page() {
 
   }
 
+  // ambil data transaksi
   const fetchTransactions = async (user: any) => {
     setLoading(true)
 
@@ -109,7 +123,82 @@ export default function Page() {
       (acc, item) => acc + item.amount, 0
     )
 
-  //const balance = totalIncome - totalExpense
+  const monthlyChartData = Array.from(
+    { length: 12 },
+    (_, index) => {
+      const monthTransactions = transactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.date)
+
+        return (
+          transactionDate.getMonth() === index &&
+          transactionDate.getFullYear() === year
+        )
+      })
+
+      const income = monthTransactions
+        .filter(
+          (item) => item.type === 'income'
+        )
+        .reduce(
+          (acc, item) => acc + item.amount, 0
+        )
+
+      const expense = monthTransactions
+        .filter(
+          (item) => item.type === 'expense'
+        )
+        .reduce(
+          (acc, item) => acc + item.amount, 0
+        )
+
+      return {
+        month:
+          new Date(0, index).toLocaleString(
+            'id-ID',
+            {
+              month: 'short'
+            }
+          ),
+        income,
+        expense
+      }
+    }
+  )
+
+  const categoryData = Object.values(
+
+    monthlyTransactions.reduce(
+      (acc, transaction) => {
+
+        if (
+          transaction.type !== 'expense'
+        ) return acc
+
+        if (!acc[transaction.category]) {
+
+          acc[transaction.category] = {
+
+            name: transaction.category,
+            value: 0
+          }
+        }
+
+        acc[transaction.category].value +=
+          transaction.amount
+
+        return acc
+
+      },
+
+      {} as Record<
+        string,
+        {
+          name: string
+          value: number
+        }
+      >
+    )
+  )
 
   const formatCurrency = (amount: number) => {
     return `Rp ${amount.toLocaleString('id-ID')}`
@@ -147,7 +236,7 @@ export default function Page() {
               </Button>
             </PopoverTrigger>
 
-            <PopoverContent className='w-52 p-2'>
+            <PopoverContent className='w-52 p-2' align='end'>
               <div className='grid grid-cols-3 gap-2'>
                 {Array.from(
                   { length: 12 },
@@ -208,25 +297,77 @@ export default function Page() {
 
         {/* CHART SECTION */}
         <div className="grid grid-cols-2 gap-4">
+          {
+            monthlyChartData.every(
+              (item) =>
+                item.income === 0 &&
+                item.expense === 0
+            ) ? (
 
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-4">Ringkasan Bulan Ini</h3>
-              <div className="h-40 flex items-center justify-center text-gray-400">
-                Chart nanti
+              <div className="h-72 flex items-center justify-center text-gray-400">
+
+                Belum ada data
+
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-4">Pengeluaran per Kategori</h3>
-              <div className="h-40 flex items-center justify-center text-gray-400">
-                Pie chart nanti
+            ) : (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyChartData}>
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar
+                      dataKey="income"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="expense"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            </CardContent>
-          </Card>
+            )
+          }
 
+          {
+            categoryData.length === 0 ? (
+
+              <div className="h-72 flex items-center justify-center text-gray-400">
+
+                Belum ada data pengeluaran
+
+              </div>
+
+            ) : (
+              <div className="h-72">
+
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={100}
+                      label
+                    >
+                      {categoryData.map(
+                        (_, index) => (
+                          <Cell key={index} />
+                        )
+                      )}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              // pie chart
+            )
+          }
         </div>
 
         {/* TRANSAKSI */}
