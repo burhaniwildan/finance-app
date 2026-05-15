@@ -7,6 +7,11 @@ import DashboardCard from "@/components/DashboardCard"
 import TransactionItem from "@/components/TransactionItem"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { div } from 'framer-motion/client'
@@ -25,6 +30,11 @@ export default function Page() {
     useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [balance, setBalance] = useState(0)
+  const [selectedMonth, setSelectedMonth] = useState(new Date())
+
+  const month = selectedMonth.getMonth()
+  const year = selectedMonth.getFullYear()
+  const recentTransactions = transactions.slice(0, 5)
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -74,15 +84,30 @@ export default function Page() {
     setLoading(false)
   }
 
-  const recentTransactions = transactions.slice(0, 5)
+  const monthlyTransactions = transactions.filter((transaction => {
+    const transactionDate = new Date(transaction.date)
 
-  const totalIncome = transactions
-    .filter((item) => item.type === 'income')
-    .reduce((acc, item) => acc + item.amount, 0)
+    return (
+      transactionDate.getMonth() === month &&
+      transactionDate.getFullYear() === year
+    )
+  }))
 
-  const totalExpense = transactions
-    .filter((item) => item.type === 'expense')
-    .reduce((acc, item) => acc + item.amount, 0)
+  const totalIncome = monthlyTransactions
+    .filter(
+      (item) => item.type === 'income'
+    )
+    .reduce(
+      (acc, item) => acc + item.amount, 0
+    )
+
+  const totalExpense = monthlyTransactions
+    .filter(
+      (item) => item.type === 'expense'
+    )
+    .reduce(
+      (acc, item) => acc + item.amount, 0
+    )
 
   //const balance = totalIncome - totalExpense
 
@@ -109,7 +134,55 @@ export default function Page() {
             <p className="text-gray-500">Kelola keuanganmu dengan lebih bijak.</p>
           </div>
 
-          <Button variant="outline">Mei 2024</Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                {selectedMonth.toLocaleString(
+                  'id-ID',
+                  {
+                    month: 'long',
+                    year: 'numeric'
+                  }
+                )}
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className='w-52 p-2'>
+              <div className='grid grid-cols-3 gap-2'>
+                {Array.from(
+                  { length: 12 },
+                  (_, index) => {
+                    const date = new Date()
+                    date.setMonth(index)
+
+                    return (
+                      <Button
+                        key={index}
+                        variant={
+                          selectedMonth.getMonth() === index
+                            ? 'default'
+                            : 'outline'
+                        }
+                        size="sm"
+                        onClick={() => {
+                          const newDate = new Date(selectedMonth)
+                          newDate.setMonth(index)
+                          setSelectedMonth(newDate)
+                        }}
+                      >
+                        {date.toLocaleString(
+                          'id-ID',
+                          {
+                            month: 'short'
+                          }
+                        )}
+                      </Button>
+                    )
+                  }
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* CARDS */}
