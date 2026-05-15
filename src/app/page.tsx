@@ -24,7 +24,8 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  Legend
 } from 'recharts'
 import { toast } from "sonner"
 
@@ -35,6 +36,16 @@ type Transaction = {
   category: string
   date: string
 }
+
+const PIE_COLORS = [
+  '#22c55e',
+  '#3b82f6',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#06b6d4',
+  '#84cc16',
+]
 
 export default function Page() {
   const router = useRouter()
@@ -204,6 +215,20 @@ export default function Page() {
     return `Rp ${amount.toLocaleString('id-ID')}`
   }
 
+  const formatRupiah = (
+    amount: number
+  ) => {
+
+    return new Intl.NumberFormat(
+      'id-ID',
+      {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+      }
+    ).format(amount)
+  }
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
     router.push('/login')
@@ -297,77 +322,134 @@ export default function Page() {
 
         {/* CHART SECTION */}
         <div className="grid grid-cols-2 gap-4">
-          {
-            monthlyChartData.every(
-              (item) =>
-                item.income === 0 &&
-                item.expense === 0
-            ) ? (
+          <Card className="shadow-sm border-0">
 
-              <div className="h-72 flex items-center justify-center text-gray-400">
+            <CardContent className="p-6">
 
-                Belum ada data
+              <div className="flex items-center justify-between mb-6">
 
-              </div>
+                <div>
 
-            ) : (
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyChartData}>
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar
-                      dataKey="income"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="expense"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )
-          }
+                  <h3 className="font-semibold text-lg">
+                    Ringkasan Bulanan
+                  </h3>
 
-          {
-            categoryData.length === 0 ? (
+                  <p className="text-sm text-gray-500">
 
-              <div className="h-72 flex items-center justify-center text-gray-400">
+                    Pemasukan dan pengeluaran
+                    per bulan
 
-                Belum ada data pengeluaran
+                  </p>
+
+                </div>
 
               </div>
 
-            ) : (
-              <div className="h-72">
+              {
+                loading ?
+                  <div className="h-72 flex items-center justify-center text-gray-400">
+                    Memuat...
+                  </div>
+                  :
+                  monthlyChartData.every(
+                    (item) =>
+                      item.income === 0 &&
+                      item.expense === 0
+                  ) ? (
+                    <div className="h-72 flex items-center justify-center text-gray-400">
+                      Belum ada data
+                    </div>
+                  ) : (
+                    <div className="h-72">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                      >
+                        <BarChart
+                          data={monthlyChartData}
+                        >
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar
+                            dataKey="income"
+                            fill="#22c55e"
+                            radius={[6, 6, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="expense"
+                            fill="#ef4444"
+                            radius={[6, 6, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )
+              }
+            </CardContent>
+          </Card>
 
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      dataKey="value"
-                      nameKey="name"
-                      outerRadius={100}
-                      label
-                    >
-                      {categoryData.map(
-                        (_, index) => (
-                          <Cell key={index} />
-                        )
-                      )}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+          <Card className="shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="mb-6">
+                <h3 className="font-semibold text-lg">
+                  Pengeluaran per Kategori
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Distribusi pengeluaran bulan ini
+                </p>
               </div>
-              // pie chart
-            )
-          }
+              {
+                loading ?
+                  <div className="h-72 flex items-center justify-center text-gray-400">
+                    Memuat...
+                  </div>
+                  :
+                  categoryData.length === 0 ? (
+                    <div className="h-72 flex items-center justify-center text-gray-400">
+                      Belum ada data pengeluaran
+                    </div>
+                  ) : (
+                    <div className="h-72">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                      >
+                        <PieChart>
+                          <Pie
+                            data={categoryData}
+                            dataKey="value"
+                            nameKey="name"
+                            outerRadius={100}
+                            label
+                          >
+                            {categoryData.map(
+                              (_, index) => (
+                                <Cell
+                                  key={index}
+                                  fill={
+                                    PIE_COLORS[
+                                    index % PIE_COLORS.length
+                                    ]
+                                  }
+                                />
+                              )
+                            )}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value) =>
+                              formatCurrency(Number(value))
+                            }
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )
+              }
+            </CardContent>
+          </Card>
         </div>
 
         {/* TRANSAKSI */}
