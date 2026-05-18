@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
+
 import Sidebar from "@/components/Sidebar"
 import DashboardCard from "@/components/DashboardCard"
 import TransactionItem from "@/components/TransactionItem"
@@ -14,6 +15,12 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover"
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  AlertTriangle
+} from 'lucide-react'
 
 import {
   BarChart,
@@ -117,6 +124,76 @@ export default function Page() {
       transactionDate.getFullYear() === year
     )
   }))
+
+  const currentMonthExpense = monthlyTransactions
+    .filter(
+      (item) => item.type === 'expense'
+    )
+    .reduce(
+      (acc, item) => acc + item.amount, 0
+    )
+
+  const lastMonthTransactions = transactions.filter((transaction) => {
+    const transactionDate = new Date(transaction.date)
+    const lastMonthDate = new Date(year, month - 2)
+
+    return (
+      transactionDate.getMonth() ===
+      lastMonthDate.getMonth() &&
+      transactionDate.getFullYear() ===
+      lastMonthDate.getFullYear()
+    )
+  })
+
+  const lastMonthExpense = lastMonthTransactions
+    .filter(
+      (item) => item.type === 'expense'
+    )
+    .reduce(
+      (acc, item) => acc + item.amount, 0
+    )
+
+  const expenseDifference = currentMonthExpense - lastMonthExpense
+
+  const expensePercentage = lastMonthExpense > 0
+    ? Math.round(
+      (
+        expenseDifference / lastMonthExpense
+      ) * 100
+    )
+    : 0
+
+  const expenseCategories = monthlyTransactions
+    .filter(
+      (item) => item.type === 'expense'
+    )
+    .reduce(
+      (acc, item) => {
+        if (!acc[item.category]) {
+          acc[item.category] = 0
+        }
+        acc[item.category] += item.amount
+
+        return acc
+      }, {} as Record<string, number>
+    )
+
+  const topCategory = Object.entries(expenseCategories)
+    .sort(
+      (a, b) => b[1] - a[1]
+    )[0]
+
+  const monthlyIncome = monthlyTransactions
+    .filter(
+      (item) => item.type === 'income'
+    )
+    .reduce(
+      (acc, item) => acc + item.amount, 0
+    )
+
+  const savingRate = monthlyIncome > 0
+    ? Math.round(((monthlyIncome - currentMonthExpense) / monthlyIncome) * 100)
+    : 0
 
   const totalIncome = monthlyTransactions
     .filter(
@@ -323,74 +400,6 @@ export default function Page() {
         {/* CHART SECTION */}
         <div className="grid grid-cols-2 gap-4">
           <Card className="shadow-sm border-0">
-
-            <CardContent className="p-6">
-
-              <div className="flex items-center justify-between mb-6">
-
-                <div>
-
-                  <h3 className="font-semibold text-lg">
-                    Ringkasan Bulanan
-                  </h3>
-
-                  <p className="text-sm text-gray-500">
-
-                    Pemasukan dan pengeluaran
-                    per bulan
-
-                  </p>
-
-                </div>
-
-              </div>
-
-              {
-                loading ?
-                  <div className="h-72 flex items-center justify-center text-gray-400">
-                    Memuat...
-                  </div>
-                  :
-                  monthlyChartData.every(
-                    (item) =>
-                      item.income === 0 &&
-                      item.expense === 0
-                  ) ? (
-                    <div className="h-72 flex items-center justify-center text-gray-400">
-                      Belum ada data
-                    </div>
-                  ) : (
-                    <div className="h-72">
-                      <ResponsiveContainer
-                        width="100%"
-                        height="100%"
-                      >
-                        <BarChart
-                          data={monthlyChartData}
-                        >
-                          <XAxis dataKey="month" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar
-                            dataKey="income"
-                            fill="#22c55e"
-                            radius={[6, 6, 0, 0]}
-                          />
-                          <Bar
-                            dataKey="expense"
-                            fill="#ef4444"
-                            radius={[6, 6, 0, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )
-              }
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-0">
             <CardContent className="p-6">
               <div className="mb-6">
                 <h3 className="font-semibold text-lg">
@@ -450,7 +459,165 @@ export default function Page() {
               }
             </CardContent>
           </Card>
+
+          <Card className='shadow-sm border-0'>
+            <CardContent className='p-6 space-y-5'>
+              <div>
+                <h3 className='text-lg font-semibold'>
+                  Financial Insights
+                </h3>
+                <p className='text-sm text-gray-500'>
+                  Analisa keuangan bulan ini
+                </p>
+              </div>
+
+              <div className='grid md:grid-cols-2 gap-4 mt-18'>
+                {/* EXPENSE COMPARISON */}
+                <div className='flex items-start gap-4 p-4 rounded-x1 border'>
+                  {
+                    expenseDifference > 0 ? (
+                      <TrendingUp className='text-red-500 w-5 h-5 mt-1' />
+                    ) : (
+                      <TrendingDown className='text-green-500 w-5 h-5 mt-1' />
+                    )
+                  }
+
+                  <div>
+                    <p className='font-medium'>
+                      {
+                        expenseDifference > 0
+                          ? 'Pengeluaran naik'
+                          : 'Pengeluaran turun'
+                      }
+                    </p>
+
+                    <p className='text-sm text-gray-500'>
+                      {Math.abs(expensePercentage)}%
+                      dibanding bulan lalu
+                    </p>
+                  </div>
+                </div>
+
+                {/* TOP CATEGORY */}
+                <div className='flex items-start gap-3 p-4 rounded-x1 border'>
+                  <Wallet className='text-yellow-500 w-5 h-5 mt-1' />
+
+                  <div>
+                    <p className='font-medium'>
+                      Pengeluaran terbesar
+                    </p>
+
+                    <p className='text-sm text-gray-500 capitalize'>
+                      {
+                        topCategory
+                          ? `${topCategory[0]}`
+                          : 'Belum ada data'
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* SAVING RATE */}
+                <div className='flex items-start gap-3 p-4 rounded-x1 border'>
+                  <Wallet className='text-green-500 w-5 h-5 mt-1' />
+
+                  <div>
+                    <p className='font-medium'>
+                      Saving Rate
+                    </p>
+
+                    <p className='text-sm text-gray-500'>
+                      {savingRate}%
+                    </p>
+                  </div>
+                </div>
+
+                {/* BUDGET WARNING */}
+                <div className='flex items-start gap-3 p-4 rounded-x1 border'>
+                  <AlertTriangle className='text-orange-500 w-5 h-5 mt-1' />
+
+                  <div>
+                    <p className='font-medium'>
+                      Budget Status
+                    </p>
+
+                    <p className='text-sm text-gray-500'>
+                      Pantau budget bulan ini
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        <Card className="shadow-sm border-0">
+
+          <CardContent className="p-6">
+
+            <div className="flex items-center justify-between mb-6">
+
+              <div>
+
+                <h3 className="font-semibold text-lg">
+                  Ringkasan Bulanan
+                </h3>
+
+                <p className="text-sm text-gray-500">
+
+                  Pemasukan dan pengeluaran
+                  per bulan
+
+                </p>
+
+              </div>
+
+            </div>
+
+            {
+              loading ?
+                <div className="h-72 flex items-center justify-center text-gray-400">
+                  Memuat...
+                </div>
+                :
+                monthlyChartData.every(
+                  (item) =>
+                    item.income === 0 &&
+                    item.expense === 0
+                ) ? (
+                  <div className="h-72 flex items-center justify-center text-gray-400">
+                    Belum ada data
+                  </div>
+                ) : (
+                  <div className="h-72">
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%"
+                    >
+                      <BarChart
+                        data={monthlyChartData}
+                      >
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar
+                          dataKey="income"
+                          fill="#22c55e"
+                          radius={[6, 6, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="expense"
+                          fill="#ef4444"
+                          radius={[6, 6, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )
+            }
+          </CardContent>
+        </Card>
 
         {/* TRANSAKSI */}
         <Card>
