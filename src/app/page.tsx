@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
-
 import Sidebar from "@/components/Sidebar"
 import DashboardCard from "@/components/DashboardCard"
 import TransactionItem from "@/components/TransactionItem"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import {
   Popover,
   PopoverContent,
@@ -58,11 +58,15 @@ export default function Page() {
   const router = useRouter()
   const [transactions, setTransactions] =
     useState<Transaction[]>([])
+  const [budgets, setBudgets] =
+    useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [balance, setBalance] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState(new Date())
 
+  const currentDate = new Date()
   const month = selectedMonth.getMonth()
+  const monthBudget = month + 1
   const year = selectedMonth.getFullYear()
   const recentTransactions = transactions.slice(0, 5)
 
@@ -72,6 +76,7 @@ export default function Page() {
       if (!user) return
       await fetchBalance(user.id)
       await fetchTransactions(user)
+      fetchBudgets()
     }
     fetchDashboard()
   }, [])
@@ -114,6 +119,25 @@ export default function Page() {
       setTransactions(data || [])
     }
     setLoading(false)
+  }
+
+  //ambil data budgets
+  const fetchBudgets = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('month', monthBudget)
+      .eq('year', year)
+
+    if (error) {
+      console.log(error)
+      return
+    }
+    setBudgets(data || [])
   }
 
   const monthlyTransactions = transactions.filter((transaction => {
@@ -265,7 +289,6 @@ export default function Page() {
         if (!acc[transaction.category]) {
 
           acc[transaction.category] = {
-
             name: transaction.category,
             value: 0
           }
@@ -287,6 +310,55 @@ export default function Page() {
       >
     )
   )
+
+  const totalBudget = budgets
+    .reduce(
+      (acc, item) => acc + item.amount, 0
+    )
+
+  const totalExpenseBudgets = monthlyTransactions
+    .filter(
+      (item) => item.type === 'expense'
+    )
+    .reduce(
+      (acc, item) => acc + item.amount, 0
+    )
+
+  const remainingBudget = totalBudget - totalExpenseBudgets
+
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 90) {
+      return '[&>div]:bg-red-500'
+    }
+    if (percentage >= 75) {
+      return '[&>div]:bg-yellow-500'
+    }
+    return '[&>div]:bg-green-500'
+  }
+
+  const topBudgets = [...budgets]
+    .sort((a, b) => {
+      const expenseA = monthlyTransactions
+        .filter((transaction) =>
+          transaction.type === 'expense' &&
+          transaction.category === a.category
+        )
+        .reduce(
+          (acc, item) => acc + item.amount, 0
+        )
+
+      const expenseB = monthlyTransactions
+        .filter((transaction) =>
+          transaction.type === 'expense' &&
+          transaction.category === b.category
+        )
+        .reduce(
+          (acc, item) => acc + item.amount, 0
+        )
+
+      return expenseB - expenseA
+    })
+    .slice(0, 3)
 
   const formatCurrency = (amount: number) => {
     return `Rp ${amount.toLocaleString('id-ID')}`
@@ -397,7 +469,7 @@ export default function Page() {
           />
         </div>
 
-        {/* CHART SECTION */}
+        {/* CHART PENGELUARAN PER KATEGORI */}
         <div className="grid grid-cols-2 gap-4">
           <Card className="shadow-sm border-0">
             <CardContent className="p-6">
@@ -460,6 +532,7 @@ export default function Page() {
             </CardContent>
           </Card>
 
+          {/* FINANCIAL INSIGHTS */}
           <Card className='shadow-sm border-0'>
             <CardContent className='p-6 space-y-5'>
               <div>
@@ -549,75 +622,201 @@ export default function Page() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <Card className="shadow-sm border-0">
+          {/* CHART RINGKASAN BULANAN */}
+          <Card className="shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    Ringkasan Bulanan
+                  </h3>
 
-          <CardContent className="p-6">
-
-            <div className="flex items-center justify-between mb-6">
-
-              <div>
-
-                <h3 className="font-semibold text-lg">
-                  Ringkasan Bulanan
-                </h3>
-
-                <p className="text-sm text-gray-500">
-
-                  Pemasukan dan pengeluaran
-                  per bulan
-
-                </p>
-
+                  <p className="text-sm text-gray-500">
+                    Pemasukan dan pengeluaran
+                    per bulan
+                  </p>
+                </div>
               </div>
 
-            </div>
-
-            {
-              loading ?
-                <div className="h-72 flex items-center justify-center text-gray-400">
-                  Memuat...
-                </div>
-                :
-                monthlyChartData.every(
-                  (item) =>
-                    item.income === 0 &&
-                    item.expense === 0
-                ) ? (
+              {
+                loading ?
                   <div className="h-72 flex items-center justify-center text-gray-400">
-                    Belum ada data
+                    Memuat...
                   </div>
-                ) : (
-                  <div className="h-72">
-                    <ResponsiveContainer
-                      width="100%"
-                      height="100%"
-                    >
-                      <BarChart
-                        data={monthlyChartData}
+                  :
+                  monthlyChartData.every(
+                    (item) =>
+                      item.income === 0 &&
+                      item.expense === 0
+                  ) ? (
+                    <div className="h-72 flex items-center justify-center text-gray-400">
+                      Belum ada data
+                    </div>
+                  ) : (
+                    <div className="h-72">
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
                       >
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar
-                          dataKey="income"
-                          fill="#22c55e"
-                          radius={[6, 6, 0, 0]}
-                        />
-                        <Bar
-                          dataKey="expense"
-                          fill="#ef4444"
-                          radius={[6, 6, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                        <BarChart
+                          data={monthlyChartData}
+                        >
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar
+                            dataKey="income"
+                            fill="#22c55e"
+                            radius={[6, 6, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="expense"
+                            fill="#ef4444"
+                            radius={[6, 6, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )
+              }
+            </CardContent>
+          </Card>
+
+          {/* BUDGET OVERVIEW */}
+          <Card className="shadow-sm border-0">
+            <CardContent className="p-6 space-y-6">
+              {/* HEADER */}
+              <div className='flex items-center justify-between'>
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    Budget Overview
+                  </h3>
+
+                  <p className="text-sm text-gray-500">
+                    Penggunaan budget bulan ini
+                  </p>
+                </div>
+
+                <Button
+                  variant='link'
+                  size='sm'
+                  onClick={() => router.push('/budget')}
+                >
+                  Lihat Semua
+                </Button>
+              </div>
+
+              {/* TOTAL */}
+              {
+                loading ?
+                  <div className="h-72 flex items-center justify-center text-gray-400">
+                    Memuat...
+                  </div> :
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Total Budget
+                      </p>
+
+                      <p className="font-semibold">
+                        {formatRupiah(totalBudget)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Terpakai
+                      </p>
+
+                      <p className="font-semibold text-red-500">
+                        {formatRupiah(totalExpenseBudgets)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Sisa
+                      </p>
+
+                      <p className="font-semibold text-green-600">
+                        {formatRupiah(remainingBudget)}
+                      </p>
+                    </div>
                   </div>
-                )
-            }
-          </CardContent>
-        </Card>
+              }
+
+              {/* CATEGORY PROGRESS */}
+              <div className="space-y-4">
+                {topBudgets.map((budget) => {
+                  const categoryExpense =
+                    monthlyTransactions
+                      .filter(
+                        (transaction) =>
+                          transaction.type === 'expense' &&
+                          transaction.category ===
+                          budget.category
+                      )
+                      .reduce(
+                        (acc, item) =>
+                          acc + item.amount,
+                        0
+                      )
+
+                  const percentage =
+                    totalBudget > 0
+                      ? (
+                        categoryExpense /
+                        totalBudget
+                      ) * 100
+                      : 0
+
+                  return (
+                    <div
+                      key={budget.id}
+                      onClick={() => router.push('/budget')}
+                      className="space-y-2 cursor-pointer hover:bg-gray-100 p-3 transition rounded-x1"
+                    >
+                      <div className="flex justify-between text-sm">
+                        <span className="capitalize">
+                          {budget.category}
+                        </span>
+                        <span>
+                          {Math.round(percentage)}%
+                        </span>
+                      </div>
+
+                      <Progress
+                        value={percentage}
+                        className={getProgressColor(percentage)}
+                      />
+
+                      <div className='flex justify-between text-xs text-gray-500'>
+                        <span>
+                          Terpakai {formatRupiah(categoryExpense)} / {formatRupiah(budget.amount)}
+                        </span>
+
+                        <span
+                          className=
+                          {
+                            percentage >= 90 ?
+                              'text-red-500' :
+                              percentage >= 75 ?
+                                'text-yellow-500' :
+                                'text-green-500'
+                          }
+                        >
+                          Sisa: {formatRupiah(budget.amount - categoryExpense)}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* TRANSAKSI */}
         <Card>
