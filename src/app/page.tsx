@@ -278,16 +278,13 @@ export default function Page() {
   )
 
   const categoryData = Object.values(
-
     monthlyTransactions.reduce(
       (acc, transaction) => {
-
         if (
           transaction.type !== 'expense'
         ) return acc
 
         if (!acc[transaction.category]) {
-
           acc[transaction.category] = {
             name: transaction.category,
             value: 0
