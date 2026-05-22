@@ -7,6 +7,8 @@ import {
   usePathname
 } from "next/navigation"
 import { supabase } from '@/lib/supabaseClient'
+import { Category } from '@/types/category'
+import { fetchCategories } from '@/lib/categories'
 
 import { format } from "date-fns"
 import { DateRange } from 'react-day-picker'
@@ -86,6 +88,7 @@ export default function TransactionsPage() {
     )
   const [totalCount, setTotalCount] = useState(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] =
@@ -126,6 +129,10 @@ export default function TransactionsPage() {
     currentPage
   ])
 
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
   //Query Params
   useEffect(() => {
     const params = new URLSearchParams()
@@ -137,7 +144,7 @@ export default function TransactionsPage() {
 
     params.set(
       'limit',
-      currentPage.toString()
+      itemsPerPage.toString()
     )
 
     if (debouncedSearch) {
@@ -186,6 +193,11 @@ export default function TransactionsPage() {
     pathname
   ])
 
+  const loadCategories = async () => {
+    const data = await fetchCategories()
+    setCategories(data)
+  }
+
   //Function Fetch Transactions
   const fetchTransactions = async () => {
     let query = supabase
@@ -193,7 +205,7 @@ export default function TransactionsPage() {
       .select('*', { count: 'exact' })
 
     const from = (currentPage - 1) * itemsPerPage
-    const to = from + itemsPerPage
+    const to = from + itemsPerPage - 1
 
     query = query.range(from, to)
 
@@ -419,20 +431,20 @@ export default function TransactionsPage() {
                   <CommandGroup>
                     {categories.map((category) => (
                       <CommandItem
-                        key={category}
+                        key={category.id}
                         onSelect={() =>
-                          toggleCategory(category)
+                          toggleCategory(category.name)
                         }
                       >
                         <div className="flex items-center gap-2">
                           <Checkbox
-                            checked={selectedCategories.includes(category)}
+                            checked={selectedCategories.includes(category.name)}
                           />
                           <span className="capitalize">
-                            {category}
+                            {category.icon} {category.name}
                           </span>
                         </div>
-                        {selectedCategories.includes(category) && (
+                        {selectedCategories.includes(category.name) && (
                           <Check className="ml-auto h-4 w-4" />
                         )}
                       </CommandItem>
@@ -551,6 +563,14 @@ export default function TransactionsPage() {
 
                     <TableCell>
                       <Badge variant='secondary'>
+                        {
+                          categories.find(
+                            (item) =>
+                              item.name ===
+                              transaction.category
+                          )?.icon
+                        }
+                        {' '}
                         {transaction.category}
                       </Badge>
                     </TableCell>

@@ -11,10 +11,8 @@ export default function Sidebar() {
       <nav className="space-y-3">
         <p onClick={() => router.push('/')} className="font-semibold text-blue-600 cursor-pointer">Dashboard</p>
         <p onClick={() => router.push('/transaction')} className="text-gray-600 cursor-pointer">Transaksi</p>
-        <p className="text-gray-600">Kategori</p>
+        <p onClick={() => router.push('/category')} className="text-gray-600 cursor-pointer">Kategori</p>
         <p onClick={() => router.push('/budget')} className="text-gray-600 cursor-pointer">Budget</p>
-        <p className="text-gray-600">Laporan</p>
-        <p className="text-gray-600">Pengaturan</p>
       </nav>
     </aside>
   )

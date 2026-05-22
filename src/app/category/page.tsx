@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { supabase } from '@/lib/supabaseClient'
+import { Category } from '@/types/category'
 
 import AddCategoryDialog from '@/components/AddCategoryDialog'
 import DeleteCategoryDialog from '@/components/DeleteCategoryDialog'
@@ -17,7 +18,7 @@ import { Button } from '@/components/ui/button'
 
 export default function CategoryPage() {
   const [categories, setCategories] =
-    useState<any[]>([])
+    useState<Category[]>([])
   const [transactions, setTransactions] =
     useState<any[]>([])
 

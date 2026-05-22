@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
-import Sidebar from '@/components/Sidebar'
+import { Category } from '@/types/category'
+import { fetchCategories } from '@/lib/categories'
 
+import Sidebar from '@/components/Sidebar'
 import {
   Card,
   CardContent,
@@ -47,15 +49,16 @@ type Transaction = {
   date: string
 }
 
-const categories = [
+/*const categories = [
   'makanan',
   'transport',
   'belanja'
-]
+]*/
 
 export default function BudgetPage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
@@ -167,9 +170,21 @@ export default function BudgetPage() {
       )
   }
 
+  const getCategoryInfo = (categoryName: string) => {
+    return categories.find(
+      (item) => item.name === categoryName
+    )
+  }
+
+  const loadCategories = async () => {
+    const data = await fetchCategories()
+    setCategories(data)
+  }
+
   useEffect(() => {
     fetchBudgets()
     fetchTransactions()
+    loadCategories()
   }, [])
 
   return (
@@ -222,10 +237,10 @@ export default function BudgetPage() {
                     <SelectContent>
                       {categories.map((item) => (
                         <SelectItem
-                          key={item}
-                          value={item}
+                          key={item.id}
+                          value={item.name}
                         >
-                          {item}
+                          {item.icon} {item.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -263,6 +278,12 @@ export default function BudgetPage() {
         {/* BUDGET LIST */}
         <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'>
           {budgets.map((budget) => {
+            const categoryInfo =
+              categories.find(
+                (item) =>
+                  item.name === budget.category
+              )
+
             const expense = getCategoryExpense(budget.category)
             const percentage =
               Math.min(
@@ -278,10 +299,21 @@ export default function BudgetPage() {
               >
                 <CardHeader>
                   <div className='flex items-center justify-between'>
-                    <CardTitle className='capitalize'>
-                      {budget.category}
-                    </CardTitle>
+                    <div className='flex items-center gap-3'>
+                      <div
+                        className='w-10 h-10 rounded-xl flex items-center justify-center text-white'
+                        style={{
+                          backgroundColor:
+                            categoryInfo?.color
+                        }}
+                      >
+                        {categoryInfo?.icon || '📂'}
+                      </div>
 
+                      <CardTitle className='capitalize'>
+                        {budget.category}
+                      </CardTitle>
+                    </div>
                     <div className='text-sm text-gray-500'>
                       {Math.round(percentage)}%
                     </div>

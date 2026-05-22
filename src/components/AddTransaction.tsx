@@ -2,7 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { fetchCategories } from '@/lib/categories'
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,9 +49,18 @@ export default function AddTransactionForm({
     transaction?.date?.toString() || '')
   const [note, setNote] = useState(
     transaction?.description?.toString() || '')
+  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const loadCategories = async () => {
+    const data = await fetchCategories()
+    setCategories(data)
+  }
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -170,9 +181,16 @@ export default function AddTransactionForm({
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="makanan">Makan & Minum</SelectItem>
-                  <SelectItem value="transport">Transportasi</SelectItem>
-                  <SelectItem value="belanja">Belanja</SelectItem>
+                  {
+                    categories.map((category) => (
+                      <SelectItem
+                        key={category.id}
+                        value={category.name}
+                      >
+                        {category.icon} {category.name}
+                      </SelectItem>
+                    ))
+                  }
                 </SelectContent>
               </Select>
             </div>
