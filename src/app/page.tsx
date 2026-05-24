@@ -385,7 +385,7 @@ export default function Page() {
 
       <Sidebar />
 
-      <main className="flex-1 p-6 space-y-6">
+      <main className="flex-1 p-6 md:pt-6 space-y-6">
 
         {/* HEADER */}
         <div className="flex justify-between items-center">
